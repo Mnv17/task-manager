@@ -1,8 +1,9 @@
 // routes/userRoutes.js
 const express = require('express');
 const User = require('../models/User');
+const Task = require('../models/Task'); // Assuming Task model is imported here
 const jwt = require('jsonwebtoken');
-const protect = require('../middleware/auth');
+const protect = require('../middleware/authMiddleware'); // Correct import of the protect middleware
 const router = express.Router();
 
 // Register
@@ -34,31 +35,36 @@ router.post('/login', async (req, res) => {
 });
 
 // Assign task
-router.put('/:id/assign', auth, async (req, res) => {
-    const { userId } = req.body;
+router.put('/:id/assign', protect, async (req, res) => { // Use protect middleware
+  const { userId } = req.body;
+  try {
     const task = await Task.findById(req.params.id);
-  
     if (!task) return res.status(404).json({ message: 'Task not found' });
-  
+
     task.assignedTo = userId;
     await task.save();
-  
+
     res.json(task);
-  });
-  
-  // Add comment
-  router.post('/:id/comment', auth, async (req, res) => {
-    const { text } = req.body;
+  } catch (error) {
+    res.status(500).json({ message: 'Task assignment failed' });
+  }
+});
+
+// Add comment
+router.post('/:id/comment', protect, async (req, res) => { // Use protect middleware
+  const { text } = req.body;
+  try {
     const task = await Task.findById(req.params.id);
-  
     if (!task) return res.status(404).json({ message: 'Task not found' });
-  
+
     task.comments.push({ user: req.user.id, text });
     await task.save();
-  
+
     res.json(task);
-  });
-  
+  } catch (error) {
+    res.status(500).json({ message: 'Adding comment failed' });
+  }
+});
 
 // Get User Profile
 router.get('/profile', protect, async (req, res) => {
